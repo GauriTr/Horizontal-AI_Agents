@@ -17,7 +17,7 @@ async def main():
         raise ValueError("Groq API Key not found. Please set GROQ_API_KEY in .env")
 
 
-    task = "Actor Prabhas"
+    task = "Current Trend in Full stack development"
 
 
     agent_system = MultiAgentSystem(api_key)
