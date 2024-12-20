@@ -1,2 +1,4 @@
 .env
 bash.sh
+__pycache__/
+*.pyc
