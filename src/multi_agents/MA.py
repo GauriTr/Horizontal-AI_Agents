@@ -1,9 +1,6 @@
 # This is MA.py
-import os
-import json
-import asyncio
+import os, json, asyncio, requests
 from typing import List, Dict, Any
-import requests
 from dotenv import load_dotenv
 from groq import Groq
 from src.agents.BASE_AGENT import Agent
