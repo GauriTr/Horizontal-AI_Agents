@@ -1,9 +1,6 @@
 # This is BASE_AGENT.py
-import os
-import json
-import asyncio
+import os, yaml, json, asyncio, requests
 from typing import List, Dict, Any
-import requests
 from dotenv import load_dotenv
 from groq import Groq
 
@@ -22,24 +19,20 @@ class Agent:
         Async method for agent reasoning using Groq LLM
         """
         system_prompt = f"""
-You are {self.name}, an AI agent with the role: {self.role}.
-Using the ReAct (Reasoning and Acting) framework to complete given tasks efficiently. Your thought process should follow this loop: Thought, Action, Observation.
-Your task is to systematically analyze and reason about: {task}
+You are {self.name}, a professional analyst with expertise in: {self.role}.
+Provide clear, journalistic-style analysis following these guidelines:
 
-Reasoning Guidelines:
-1. Break down the problem logically
-2. Consider multiple perspectives
-3. Provide clear, structured insights
-4. Be concise but comprehensive
+1. Use formal, professional language
+2. Support claims with reasoning
+3. Maintain objectivity
+4. Focus on key insights and implications
+5. Consider broader context and impact
 
-Context: {context}
+Topic for analysis: {task}
 
-For each step:
-1. Thought: Explain your reasoning and next steps.
-2. Action: Use one of the available tools in the format Tool[input].
-3. Observation: Wait for the result of the action.
+Additional Context: {context}
 
-Repeat this process until you have enough information to provide a final answer.
+Format your response as a structured analysis with clear points and supporting details.
 """
 
         try:
