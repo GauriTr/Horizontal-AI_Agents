@@ -22,17 +22,17 @@ class MultiAgentSystem:
             Agent("ReportEditor", "Synthesize results into a cohesive report", self.client),
         ]
 
-    async def collaborative_reasoning(self, task: str, iterations: int = 3) -> List[Dict[str, Any]]:
+    async def collaborative_reasoning(self, task: str, iterations: int = 3) -> tuple[List[Dict[str, Any]], List[List[Dict[str, Any]]]]:
         """
         Collaborative reasoning across multiple agents
+        Returns both best iteration and all iterations history
         """
-        all_results = []
+        all_iterations = []  # Store all iterations
         best_iteration = None
-        best_quality = -float('inf')  # To store the best iteration's quality score
+        best_quality = -float('inf')
         context = Tool.wikipedia_search(task) if hasattr(Tool, 'wikipedia_search') else ""
 
         for iteration in range(iterations):
-            # Concurrent agent reasoning
             try:
                 iteration_results = await asyncio.gather(
                     *[agent.reason(task, context) for agent in self.agents],
@@ -41,6 +41,8 @@ class MultiAgentSystem:
             except Exception as e:
                 iteration_results = [{"error": f"Iteration error: {str(e)}"}]
 
+            all_iterations.append(iteration_results)  # Store each iteration's results
+            
             # Calculate quality metric (e.g., based on content length or keyword match)
             quality_metric = sum(len(result.get('reasoning', '')) for result in iteration_results if isinstance(result, dict))
 
@@ -53,26 +55,24 @@ class MultiAgentSystem:
             context += " " + " ".join(
                 [result.get('reasoning', '') for result in iteration_results if isinstance(result, dict)]
             )
-            all_results.extend(iteration_results)
 
-        return best_iteration or all_results
+        return best_iteration or all_iterations[-1], all_iterations
 
     def generate_final_report(self, task: str, results: List[Dict[str, Any]]) -> str:
-        """Generate a cohesive final report"""
-        introduction = f"### Introduction\nThis report analyzes the task: '{task}'. Below, we present consolidated insights from multiple AI agents.\n\n"
-        analysis = "### Analysis\n"
-        for result in results:
-            agent_name = result.get("agent", "Unknown Agent")
-            reasoning = result.get("reasoning", "").strip()
-            if reasoning:
-                analysis += f"- **{agent_name}**: {reasoning}\n\n"
+        """Generate a professional report using ReportGenerator"""
+        from src.tools.report_generator import ReportGenerator
+        context = Tool.wikipedia_search(task) if hasattr(Tool, 'wikipedia_search') else ""
+        return ReportGenerator.generate_professional_report(task, results, context)
+
+    async def process_task(self, task: str, iterations: int = 3) -> tuple[str, str]:
+        """End-to-end processing of a task, returns both report and detailed log"""
+        results, all_iterations = await self.collaborative_reasoning(task, iterations)
         
-        conclusion = "### Conclusion\nBased on the insights, the following conclusions and recommendations can be drawn:\n"
-        conclusion += "- (Insert key conclusions and actionable recommendations here)\n"
-
-        return f"# Multi-Agent Analysis Report: {task}\n\n{introduction}{analysis}{conclusion}"
-
-    async def process_task(self, task: str, iterations: int = 3) -> str:
-        """End-to-end processing of a task"""
-        results = await self.collaborative_reasoning(task, iterations)
-        return self.generate_final_report(task, results)
+        # Generate the main report
+        final_report = self.generate_final_report(task, results)
+        
+        # Generate the detailed reasoning log
+        from src.tools.report_generator import ReportGenerator
+        detailed_log = ReportGenerator.generate_reasoning_log(task, all_iterations, iterations)
+        
+        return final_report, detailed_log
